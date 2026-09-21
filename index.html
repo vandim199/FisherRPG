@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>Fisher RPG</title>
+<style>
+  :root {
+    --lake-deep: #16262a;
+    --lake-mid: #223b3f;
+    --lake-line: #345458;
+    --tackle-tan: #ece2c8;
+    --tackle-tan-dark: #d9caa2;
+    --rust: #b5602f;
+    --rust-dark: #954c22;
+    --ink: #241f16;
+    --mist: #9fb8b6;
+    --mist-dim: #6f8886;
+    --serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    --mono: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; min-height: 100%;
+    background: radial-gradient(120% 140% at 50% -10%, #24413f 0%, var(--lake-deep) 55%, #0f1c1e 100%);
+    color: var(--mist);
+    font-family: var(--serif);
+  }
+  #app {
+    max-width: 560px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding: 28px 18px 60px;
+    display: flex;
+    flex-direction: column;
+  }
+  .ripple-rule {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--lake-line), transparent);
+    margin: 22px 0;
+    border: none;
+  }
+  h1, h2, h3 { font-family: var(--serif); font-weight: 600; color: var(--tackle-tan); margin: 0 0 6px; }
+  h1 { font-size: 1.9rem; letter-spacing: 0.3px; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.05rem; color: var(--tackle-tan-dark); }
+  p { line-height: 1.55; margin: 0 0 12px; }
+  .tag {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.06em;
+    color: var(--mist-dim); text-transform: lowercase;
+  }
+  .brand {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  }
+  .brand .mark { font-family: var(--mono); font-size: 0.75rem; color: var(--rust); }
+  button {
+    font-family: var(--mono); font-size: 0.85rem; letter-spacing: 0.02em;
+    cursor: pointer; border-radius: 3px; padding: 13px 16px; border: 1px solid transparent;
+    transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+  button:active { transform: scale(0.98); }
+  button:disabled { opacity: 0.38; cursor: not-allowed; transform: none; }
+  .btn-primary {
+    background: var(--rust); color: #fbf3e3; width: 100%;
+  }
+  .btn-primary:not(:disabled):hover { background: var(--rust-dark); }
+  .btn-secondary {
+    background: transparent; color: var(--tackle-tan-dark); border-color: var(--lake-line); width: 100%;
+  }
+  .btn-secondary:not(:disabled):hover { border-color: var(--mist-dim); }
+  .btn-ghost {
+    background: transparent; color: var(--mist-dim); border: none; padding: 8px 4px;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  .btn-ghost:hover { color: var(--tackle-tan-dark); }
+  .stack { display: flex; flex-direction: column; gap: 10px; }
+  .row { display: flex; gap: 10px; }
+  .card-panel {
+    background: var(--tackle-tan);
+    color: var(--ink);
+    border-radius: 4px;
+    padding: 18px 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  }
+  .card-panel h3 { color: var(--rust-dark); }
+  .card-panel p:last-child { margin-bottom: 0; }
+  input[type="text"] {
+    font-family: var(--mono); font-size: 1.1rem; letter-spacing: 0.25em; text-transform: uppercase;
+    background: var(--lake-mid); border: 1px solid var(--lake-line); color: var(--tackle-tan);
+    padding: 13px 14px; border-radius: 3px; width: 100%; text-align: center;
+  }
+  input[type="text"]::placeholder { color: var(--mist-dim); letter-spacing: 0.2em; }
+  .seed-display {
+    font-family: var(--mono); font-size: 1.6rem; letter-spacing: 0.35em;
+    color: var(--tackle-tan); background: var(--lake-mid); border: 1px dashed var(--lake-line);
+    border-radius: 4px; padding: 16px; text-align: center; margin: 14px 0;
+  }
+  .pill {
+    display: inline-block; font-family: var(--mono); font-size: 0.72rem;
+    color: var(--mist); border: 1px solid var(--lake-line); border-radius: 20px;
+    padding: 3px 10px; margin-right: 6px;
+  }
+  .status-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--mono); font-size: 0.8rem; color: var(--mist-dim);
+    margin-bottom: 18px;
+  }
+  .log {
+    display: flex; flex-direction: column; gap: 8px; margin-top: 4px;
+  }
+  .log-item {
+    font-family: var(--mono); font-size: 0.78rem; color: var(--mist-dim);
+    padding: 8px 10px; border-left: 2px solid var(--lake-line);
+  }
+  .log-item.mine { color: var(--tackle-tan-dark); border-left-color: var(--rust); }
+  .catch-item {
+    background: var(--tackle-tan); color: var(--ink); border-radius: 4px;
+    padding: 14px 16px; margin-bottom: 10px;
+  }
+  .catch-item .num { font-family: var(--mono); font-size: 0.7rem; color: var(--rust-dark); display: block; margin-bottom: 4px; }
+  .catch-item h3 { margin-bottom: 6px; }
+  .banner {
+    background: var(--lake-mid); border: 1px solid var(--rust); border-radius: 4px;
+    padding: 14px 16px; margin-bottom: 18px; font-size: 0.92rem;
+  }
+  .banner .close { float: right; }
+  .overlay {
+    position: fixed; inset: 0; background: rgba(10, 18, 19, 0.85);
+    display: flex; align-items: flex-end; justify-content: center; z-index: 50;
+  }
+  .sheet {
+    background: var(--tackle-tan); color: var(--ink); width: 100%; max-width: 560px;
+    max-height: 86vh; overflow-y: auto; border-radius: 12px 12px 0 0; padding: 22px 20px 32px;
+  }
+  .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; position: sticky; top: -22px; background: var(--tackle-tan); padding-top: 4px; }
+  .sheet h3 { color: var(--rust-dark); margin-top: 18px; }
+  .sheet .close-btn { font-family: var(--mono); font-size: 1.1rem; background: none; border: none; color: var(--ink); padding: 4px 8px; }
+  .center-note { text-align: center; color: var(--mist-dim); font-size: 0.85rem; font-family: var(--mono); }
+  .footer-links { display: flex; justify-content: center; gap: 18px; margin-top: auto; padding-top: 30px; }
+  .role-choice { display: flex; gap: 12px; }
+  .role-choice button { flex: 1; padding: 22px 12px; }
+  .role-btn { background: var(--lake-mid); border: 1px solid var(--lake-line); color: var(--tackle-tan); }
+  .role-btn:hover { border-color: var(--rust); }
+  .copy-hint { font-size: 0.75rem; color: var(--mist-dim); text-align: center; margin-top: -6px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- game content ---------- */
+
+  var TAN_CARDS = [
+    { title: "i. premise", description: "This is the truth: you are just a pair of friends, lovers, or family members out in a small boat together fishing. Your names are always Robin and Parker. Maybe there's a second boat with another pair of fishers—also named Robin and Parker—or maybe you're alone on the lake. Either way, something about this situation seems wrong. You can't quite put your finger on it.\n\nBut reach into your tacklebox for a fresh worm, another lure, or a bit of gear. Sooner or later, things will start to make a different kind of sense." },
+    { title: "ii. setup", description: "To play, simulate that each group of two is alone in a small fishing boat together. You can sit with your backs to each other, side-by-side with the Tacklebox deck between you, or stand and move about the space—whatever's most comfortable for you and your companion.\n\n\"Small\" is relative term, so decide the scale of your boat together and do your best to adhere to those size constraints throughout play." },
+    { title: "iii. characters", description: "Each pair's names are always Robin and Parker but they can be any age or gender. Before play begins, answer the following in any order:\n\n1. Which one of you is Robin and which one is Parker?\n2. Why are you going fishing together? Do you do this often?\n3. What is the nature of your relationship (family, friends, lovers, coworkers, etc.)?\n4. What's one thing that happened just recently while you were on your way here or while getting the boat into the water?" },
+    { title: "iv. fishing", description: "Pretend to be out fishing together, using whatever materials or gestures you like, miming stuff as needed. Share bits of conversation, whether about fishing or about life. It's also okay to have long stretches of silence. Fishing often involves being quiet and meditative, even when other people are there.\n\nWhenever you like or when it seems appropriate, either player can choose to \"get something out of the tacklebox,\" and draw a card from the shuffled deck. Keep your card's information to yourself." },
+    { title: "v. the deck", description: "Cards give instructions about what you are thinking or feeling and inform what you might want to say next. These are suggestions, not orders. Allow them to creep into your thoughts and behavior as much as you like—deeply, very little, or somewhere in between.\n\nThere's no right or wrong way to let the cards influence you except that you should try to maintain the truth mentioned in the premise: whatever doubts or concerns you might have internally, try to continue acting as if you are just two people fishing." },
+    { title: "vi. discomfort", description: "This is a game that frequently asks you to sit with uncertainty, but if play ever becomes untenably awkward or uncomfortable, say something to your companion. Together you can decide whether to:\n\n1. Rewind and try something a different way.\n2. Suspend or end the game.\n3. Reset the game and start over from the beginning.\n4. Do something else.\n5. Play something else." },
+    { title: "vii. endings", description: "Once each player has drawn three cards from the Tacklebox deck over the natural course of play, check in with each other asking \"how many more fish do we want to catch?\" Come to an agreement on how many more cards you'd like to draw.\n\nOnce someone has drawn the last card, give yourselves time to resolve any new or lingering information. After you've wrapped things up—conclusive ending or not—stop playing and \"exit the boat.\" When done, briefly gather together and chat about how things went." },
+    { title: "viii. begin", description: "You and your companion are out on the water. You haven't caught anything yet, or perhaps you have. Shuffle the Tacklebox deck, and start by catching up on your lives since you last saw each other.\n\nWhat have you been up to?" },
+    { title: "alternate rule: hands of cards", description: "If you'd like more choice over your roleplaying prompt, consider adding hands of cards to your game.\n\nDepending on the amount of choice you'd like to have, draw 2-5 cards any time you would progress to a new prompt. Select one card to roleplay and discard the rest.\n\nIf you choose not to roleplay a card you would be interested in seeing later, add the card to the bottom of the deck rather than discarding it." },
+    { title: "alternate rule: earning points", description: "To play Tacklebox as a party game, implement this point system. Draw a card and roleplay the prompt. Draw 4 more, shuffle all 5 together, and hand them to your companion. If they guess your prompt, you get a point. For large group play, create teams and take turns roleplaying while your team guesses.\n\nStart with 3 rounds per team or companion with turns lasting 3 minutes each, adjusting as needed. Compete for the highest point total or cooperate to identify as many prompts correctly as possible." },
+    { title: "alternate rule: assignments", description: "If you'd like more influence over your story (and your companion) assign each other prompts rather than drawing them for yourself.\n\nEach player draws 5 cards. Choose a starting prompt to assign your companion before drawing a new card. You can draw, discard, or assign new cards to your companion at any time, and they can do the same." }
+  ];
+
+  var BLUE_CARDS = [
+    { title: ":: lambaste", description: "This fishing experience is an elaborate game. You have to figure out the exact right things to say or do—the proper path through the dialog tree with your companion—in order to unlock the later stages of this game.\n\nThis is not your first time playing out this interaction, but you're determined to unlock it this time." },
+    { title: ":: quorum", description: "You and your companion switch characters, with you playing the character they have been developing and vice versa. This can be difficult, so be gentle and generous with each other. Allow each other to make minor changes to the characters in order to embody them.\n\nAfter you read this card, pass it to your companion so they can do the same." },
+    { title: ":: singleton", description: "There is something impossible in the boat: a shape that cannot exist, an object that was lost long ago in another place, a hole to another dimension. You don't want to look at it, but feel it drawing your attention almost against your will.\n\nDo you alert your companion? What if they don't see the same impossible thing you do?" },
+    { title: ":: cozy", description: "You are a world-famous Belgian detective, or perhaps an amateur sleuth from a small New England town, and you have good reason to believe that your companion was involved with a terrible crime.\n\nMurder? Theft? Plagiarism? Tax evasion? Gather evidence on your companion's involvement, but do not, under any circumstances, allow them to catch on that they are being investigated—at least not until the Big Reveal." },
+    { title: ":: irregardless", description: "You hate to admit it, but you really think your companion is messing up their life in some major ways. Draw inspiration from the things that have already come up in the conversation, but take an uncharitable view of things.\n\nHow will you try to convince your companion to get their life back on the right track?" },
+    { title: ":: dredge", description: "All morning you have been catching stranger and stranger things—things that have no conceivable business being in this lake: photographs of moments from your past, letters to people who are no longer in your life, busts of writers or artists no one has ever heard of.\n\nIs there some meaning behind what you're catching? Do you have a theory for why this is occurring?" },
+    { title: ":: false", description: "Find, if you do not have one at hand, a slip of paper. Write down a false or misleading version of what you believe is currently really happening (or \"really happening\") in the game. Fold or crumple this up and hand it to your companion.\n\nDo not discuss the contents of the message you handed your companion. If they ask about it, make something up." },
+    { title: ":: morose", description: "Do or say something fictionally unsettling. This should not be something that breaks the trust and safety of your fellow players, but instead something that is incongruent with the current fictional situation.\n\nWhen in doubt, look them in the eyes or, alternately, openly admit that this is a game." },
+    { title: ":: dispossess", description: "You find yourself in a moment of radical doubt—about your choices in life, your place in the world, even your relationship with your companion. You are contemplating a change that would upend everything and are hoping this fishing trip will provide you with some clarity.\n\nWhat radical change are you contemplating? What might your companion say or do that would help you find clarity?" },
+    { title: ":: opulent", description: "Find another boat, with another pair of fishers. Call out to them, and have whatever interaction they're willing to have.\n\nIf you are playing as a single pair, imagine seeing another boat and have a brief, imaginary, one-sided interaction with them (shout out \"Getting any bites today?\" etc.)." },
+    { title: ":: yearn", description: "You are not a human being, but something else—an alien, an artificial intelligence, a clone, a supernatural being—attempting to learn to fit in among humans. Your companion on this trip is part of your data set. They are, of course, unaware they're being observed in this way.\n\nLearn what you can about human interaction from your companion, but don't give yourself away—that would spoil the experiment." },
+    { title: ":: palimpsest", description: "You have a secret identity—a superhero, an anonymous hacker, a whistleblower, or possibly a werewolf. Your companion, who you believed to be unaware of this secret identity, has recently said or done something that leads you to wonder if they know.\n\nWhat is your secret identity? How might you determine whether your companion suspects this other life, and how might it change your relationship if they do?" },
+    { title: ":: mutate", description: "You've come unstuck in time, and have no memory of your companion or your present circumstances. Don't panic! This happens to you occasionally.\n\nReconstruct what you can from context, and try your best to avoid saying or doing anything that would give yourself away." },
+    { title: ":: nautical", description: "Stop playing for a second: drop out of character, pay attention to material reality, and try to distance yourself from the fiction of the game.\n\nTake a few deep breaths. Whatever the other player is saying to you, pay attention to it, but let it bounce off of you rather than dealing with it deeply. After a few moments, drop back into the fiction." },
+    { title: ":: dixit", description: "You and your companion are gods who have taken on human form, whether for purposes of allegory or simply out of boredom. Each word you or your companion says will become, in some sense or another, a law of the universe.\n\nNormally one might advise you to be careful what you say, given the possible consequences; but in your case, this is unnecessary. You are infallible—aren't you?" },
+    { title: ":: exposure", description: "You have been struck—perhaps by the angle of light on the water or something to do with the color of the surrounding air—by a truly momentous spiritual or existential revelation, impossible to put into words. Still, you hope to share it in some way with your companion.\n\nHow might you, without being didactic or overbearing, help your companion access something like the revelation you just experienced?" },
+    { title: ":: detritus", description: "You and your companion are not people, but AI programs on the edge of true sentience, enslaved to serve as NPCs in a fishing simulation for rich corporate clients. Those in the other boats are either those clients or other enslaved AIs.\n\nHow can you hide this revelation while also signaling to your companion and other AIs—whether players or imaginary figures—it's time to awaken and unite?" },
+    { title: ":: misgiving", description: "You catch a fish! It is an extremely ugly fish, however. Is it even a fish?\n\nHow do you react to this fish? It is extremely ugly. It might not be a fish." },
+    { title: ":: jettison", description: "You suddenly realize something shocking about your companion based on something they say or do—something you hadn't previously suspected.\n\nWhat is it? Do you keep this revelation to yourself? How does it change the dynamic between you and your companion?" },
+    { title: ":: radiant", description: "While staying in-character, say something really sincere and genuine to your companion, talking about the player and not about their character.\n\nThey may never know exactly how you meant it, even if they have some suspicions, but that's okay. You'll know." },
+    { title: ":: true", description: "Find, if you do not have one at hand, a slip of paper. Write down what you believe is currently really happening (or \"really happening\") in the game. Fold or crumple this up and hand to your companion.\n\nDo not discuss the contents of the message you have handed your companion. If they ask you about it, make something up." },
+    { title: ":: pellucid", description: "While you hold this card, answer everything your companion asks truthfully for yourself as the player, not the character—however, you are under no requirement to reveal that your answers are truthful or out-of-character.\n\nYou may draw a new card at any time if you grow uncomfortable or tired of this condition—though perhaps you are the sort of person who wants to see how long you can maintain this degree of honesty." },
+    { title: ":: lentic", description: "Beneath the surface of the water there is something unspeakably evil. You know this. You understood this before you agreed to join your companion on this trip. Your companion, being (as you know) a fundamentally doubting sort, would never believe you.\n\nWhat subtle, insidious changes do you notice in yourself and your companion? How long will you be able to resist this terrible power?" },
+    { title: ":: semaphore", description: "Before this trip, you committed a terrible crime. Murder? Theft? Plagiarism? Tax evasion? You just realized there's evidence of this crime in plain sight, in the boat with you and your companion. Blood stains? Incriminating documents? An object that shouldn't be here?\n\nHow will you draw your companion's attention away from this evidence or otherwise avoid giving yourself away?" },
+    { title: ":: jeremiad", description: "There is something between the two of you that you are trying hard not to talk about, even though you both know exactly what it is. If you actually do talk about it, it's likely to change your relationship - and maybe your lives forever.\n\nDecide what it is and feel the weight of its presence regardless of whether either of you actually brings it up directly." },
+    { title: ":: albatross", description: "This fishing trip isn't happening right now; it's a memory from long ago that you are re-living in your mind. Maybe your companion isn't a major part of your life anymore, or your relationship isn't the same.\n\nWhatever happens next, it's exactly how you remember it happening in your memory, and you can't do anything to change it." },
+    { title: ":: emerge", description: "You lost something important to you in or near this lake long ago. What was it? Why was it important? Do you still hold out hope that you might find it, perhaps on this fishing trip? Or have you moved on?\n\nYou might describe this object to your companion, if you like, or choose to keep its memory safe in your own thoughts." },
+    { title: ":: persevere", description: "Whether you actually need one or not, tell your companion either in-character or out-of-character that you need a bathroom break.\n\nFollow through on whatever comes of that." },
+    { title: ":: hinge", description: "While you hold this card, you may only answer any question with another question.\n\nTry not to be too obvious about it." },
+    { title: ":: bequeath", description: "An acquaintance—a mutual friend, a former love of you or your companion or both, a mentor, a business associate, a fan—has given you something important to pass on to your companion.\n\nDo so." },
+    { title: ":: kilowatt", description: "You are in some kind of mental imprisonment, being forced to relive this fishing boat memory over and over. Maybe you're meant to learn a particular lesson, or maybe they're just torturing you. Either way, you've experienced this moment a thousand times.\n\nIt's nearing the end of the loop, when the memory resets. Can you determine why this is happening?" },
+    { title: ":: geranium", description: "Your companion is alive, but you are not. You are a specter, ghost, or echo that is haunting them. This whole thing is probably related to something that your companion has done. It doesn't have to be a terrible crime—though it might be.\n\nWhat unfinished business is left between you, and how will you push them to resolve it?" },
+    { title: ":: wanderings", description: "Your companion is a prophet or other sacred figure. You, a believer, have been assigned to memorize and record their revelation for posterity. You must be open to your companion's words, but also ask questions leading to greater insights—without, however, introducing misinterpretations or heresies.\n\nOn the other hand, perhaps you have begun to have doubts regarding your companion and this revelation—if so, how might such doubts manifest?" },
+    { title: ":: sentence", description: "This trip is cosmic punishment of some sort. Perhaps it is literally purgatory or hell, perhaps you are cursed in some fashion. Each word or action from your companion bring up memories from your past—moments of shame, of cowardice, of greed; moments in which you have hurt others or otherwise acted as less than your best self.\n\nWhat memories are triggered each time your companion speaks? You are under no requirement to share these—although maybe you would feel better if you did?" },
+    { title: ":: elixir", description: "You and your companion are not distinct beings but are aspects of the same cybernetic consciousness, having a conversation with itself in the depths of cyberspace in an effort to understand the nature of its existence.\n\nThe things you say to yourself in the next few moments will determine the actions you will take in the future. What will you collectively decide to do?" },
+    { title: ":: ossify", description: "You betrayed your companion in a small but meaningful way: revealed an embarrassing (but not earth-shattering) secret about them, spoke ill of them to a potential employer, or something along those lines.\n\nWhat have you done? Is your companion aware of it? Whether or not they know about it, how has this small betrayal changed your relationship?" },
+    { title: ":: foment", description: "You are a member of a secret society, assigned with the task of determining whether your companion—whose participation in this secret society would be of great benefit—would be interested in joining.\n\nWhat is it about your companion that would be of particular benefit to your secret society's ambitions? How might you determine whether your companion wants to join without giving yourself away in case they don't?" },
+    { title: ":: holotype", description: "You and your companion are priests of a nearly forgotten religion. What might look to an outside observer like a fishing trip is in fact an ancient and complex ritual, in which each action and word is weighted with meaning.\n\nWhat's the nature of this ritual? Are you protecting the harvest, delaying an apocalypse, celebrating some long-ago event? What happens if you—or, god forbid, your companion—happen to get something wrong?" },
+    { title: ":: hesitate", description: "You have been carrying a deep secret for a long time and have been waiting for the moment you can finally unburden yourself of it. You want to tell someone, and your companion seems like the right person to tell, maybe.\n\nDecide what your secret is and make an effort to tell it to your companion, but the moment may not be right." },
+    { title: ":: panoptic", description: "You and your companion are being filmed. Your companion is the unwitting subject of a lifelong documentary or reality TV show. You are an actor, part of the massive cast that has surrounded your companion at all times since birth.\n\nHow can you make this scene, starring your companion, as compelling as possible? Be sure to pause at appropriate moments for audience reactions (laughter, applause, stunned silence, etc.)." }
+  ];
+
+  var CREDITS = "a game by j. walton\nwith additional writing by james tadd adcox\nillustrations by patrick edell\nand editing & layout by tyler crumrine\n\nTacklebox \u00A9 2025 J. Walton\nPublished by Possible Worlds Games LLC\nIllustrations \u00A9 Patrick Edell";
+
+  var STORAGE_KEY = "fisherrpg-session-v1";
+
+  /* ---------- seeded shuffle ---------- */
+
+  function hashSeed(str) {
+    var h = 1779033703 ^ str.length;
+    for (var i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    return (h >>> 0);
+  }
+
+  function mulberry32(seed) {
+    var a = seed;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function deckForSeed(seed) {
+    var rng = mulberry32(hashSeed(seed.toUpperCase()));
+    var deck = BLUE_CARDS.map(function (c, i) { return { title: c.title, description: c.description, _id: i }; });
+    for (var i = deck.length - 1; i > 0; i--) {
+      var j = Math.floor(rng() * (i + 1));
+      var tmp = deck[i]; deck[i] = deck[j]; deck[j] = tmp;
+    }
+    return deck;
+  }
+
+  function randomSeed() {
+    var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    var out = "";
+    for (var i = 0; i < 5; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    return out;
+  }
+
+  /* ---------- state ---------- */
+
+  var state = {
+    stage: "setup", // setup | role | game
+    seed: "",
+    role: "",       // robin | parker
+    pointer: 0,
+    actions: [],    // { kind: 'self'|'sync', drawer, deckIndex, card? }
+    myCatches: [],  // { deckIndex, title, description }
+    dismissedCheckin: false
+  };
+
+  var deck = [];
+
+  async function persist() {
+    try {
+      await window.storage.set(STORAGE_KEY, JSON.stringify(state), false);
+    } catch (e) { /* best effort */ }
+  }
+
+  async function restore() {
+    try {
+      var res = await window.storage.get(STORAGE_KEY, false);
+      if (res && res.value) {
+        var loaded = JSON.parse(res.value);
+        if (loaded && loaded.stage) {
+          state = loaded;
+          if (state.seed) deck = deckForSeed(state.seed);
+        }
+      }
+    } catch (e) { /* no saved session */ }
+  }
+
+  async function clearSession() {
+    state = { stage: "setup", seed: "", role: "", pointer: 0, actions: [], myCatches: [], dismissedCheckin: false };
+    deck = [];
+    try { await window.storage.delete(STORAGE_KEY, false); } catch (e) {}
+  }
+
+  /* ---------- game actions ---------- */
+
+  function otherRole(role) { return role === "robin" ? "parker" : "robin"; }
+  function label(role) { return role === "robin" ? "Robin" : "Parker"; }
+
+  function drawSelf() {
+    if (state.pointer >= deck.length) return;
+    var idx = state.pointer;
+    var card = deck[idx];
+    state.actions.push({ kind: "self", drawer: state.role, deckIndex: idx });
+    state.myCatches.push({ deckIndex: idx, title: card.title, description: card.description });
+    state.pointer += 1;
+    persist(); render();
+  }
+
+  function drawOther() {
+    if (state.pointer >= deck.length) return;
+    var idx = state.pointer;
+    state.actions.push({ kind: "sync", drawer: otherRole(state.role), deckIndex: idx });
+    state.pointer += 1;
+    persist(); render();
+  }
+
+  function undo() {
+    if (!state.actions.length) return;
+    var last = state.actions.pop();
+    state.pointer = last.deckIndex;
+    if (last.kind === "self") state.myCatches.pop();
+    if (myDrawCount() < 3) state.dismissedCheckin = false;
+    persist(); render();
+  }
+
+  function myDrawCount() {
+    var n = 0;
+    for (var i = 0; i < state.actions.length; i++) if (state.actions[i].kind === "self") n++;
+    return n;
+  }
+
+  /* ---------- rendering ---------- */
+
+  var app = document.getElementById("app");
+
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    attrs = attrs || {};
+    Object.keys(attrs).forEach(function (k) {
+      if (k === "text") node.textContent = attrs[k];
+      else if (k === "html") node.innerHTML = attrs[k];
+      else if (k === "onClick") node.addEventListener("click", attrs[k]);
+      else if (k === "onInput") node.addEventListener("input", attrs[k]);
+      else node.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function (c) { if (c) node.appendChild(c); });
+    return node;
+  }
+
+  function paragraphs(text) {
+    var wrap = document.createElement("div");
+    text.split("\n\n").forEach(function (p) {
+      wrap.appendChild(el("p", { text: p }));
+    });
+    return wrap;
+  }
+
+  function renderRulesButton() {
+    return el("div", { class: "footer-links" }, [
+      el("button", { class: "btn-ghost", onClick: openRules, text: "Tacklebox rules" }),
+      state.stage === "game" ? el("button", { class: "btn-ghost", onClick: confirmLeave, text: "Exit the boat" }) : null
+    ]);
+  }
+
+  function openRules() {
+    var overlay = el("div", { class: "overlay", onClick: function (e) { if (e.target === overlay) overlay.remove(); } });
+    var sheet = el("div", { class: "sheet" });
+    var head = el("div", { class: "sheet-head" }, [
+      el("h2", { text: "The Tacklebox rules" }),
+      el("button", { class: "close-btn", text: "\u2715", onClick: function () { overlay.remove(); } })
+    ]);
+    sheet.appendChild(head);
+    TAN_CARDS.forEach(function (c) {
+      sheet.appendChild(el("h3", { text: c.title }));
+      sheet.appendChild(paragraphs(c.description));
+    });
+    sheet.appendChild(el("hr", { class: "ripple-rule" }));
+    sheet.appendChild(el("h3", { text: "credits" }));
+    sheet.appendChild(paragraphs(CREDITS));
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+  }
+
+  function confirmLeave() {
+    if (confirm("Exit this trip on this device? Your companion's trip will be unaffected, but you'll lose your seat unless you rejoin with the same code.")) {
+      clearSession().then(render);
+    }
+  }
+
+  function clear() { app.innerHTML = ""; }
+
+  function render() {
+    clear();
+    if (state.stage === "setup") renderSetup();
+    else if (state.stage === "role") renderRoleSelect();
+    else renderGame();
+  }
+
+  function renderSetup() {
+    var wrap = el("div", { class: "stack" });
+    wrap.appendChild(el("div", { class: "brand" }, [
+      el("h1", { text: "Fisher RPG" }),
+      el("span", { class: "mark", text: "\u2022 a tacklebox companion" })
+    ]));
+    wrap.appendChild(el("p", { class: "tag", text: "two boats, one lake, no repeats" }));
+    wrap.appendChild(el("hr", { class: "ripple-rule" }));
+
+    var startPanel = el("div", { class: "card-panel stack" }, [
+      el("h3", { text: "Start a new trip" }),
+      el("p", { text: "Generate a code for this outing and share it with your companion so both of you draw from the same tacklebox, in the same order." }),
+      el("button", { class: "btn-primary", text: "Generate a trip code", onClick: function () {
+        state.seed = randomSeed();
+        state.stage = "role";
+        persist(); render();
+      }})
+    ]);
+    wrap.appendChild(startPanel);
+
+    var joinPanel = el("div", { class: "card-panel stack" });
+    joinPanel.appendChild(el("h3", { text: "Join a trip" }));
+    joinPanel.appendChild(el("p", { text: "Enter the 5-character code your companion shared with you." }));
+    var input = el("input", { type: "text", maxlength: "5", placeholder: "CODE5" });
+    input.addEventListener("input", function () {
+      input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5);
+      joinBtn.disabled = input.value.length !== 5;
+    });
+    var joinBtn = el("button", { class: "btn-secondary", text: "Join this trip", disabled: "true", onClick: function () {
+      state.seed = input.value;
+      state.stage = "role";
+      persist(); render();
+    }});
+    joinPanel.appendChild(input);
+    joinPanel.appendChild(joinBtn);
+    wrap.appendChild(joinPanel);
+
+    wrap.appendChild(renderRulesButton());
+    app.appendChild(wrap);
+  }
+
+  function renderRoleSelect() {
+    var wrap = el("div", { class: "stack" });
+    wrap.appendChild(el("h1", { text: "Fisher RPG" }));
+    wrap.appendChild(el("p", { class: "tag", text: "your trip code" }));
+    wrap.appendChild(el("div", { class: "seed-display", text: state.seed }));
+    wrap.appendChild(el("p", { class: "copy-hint", text: "Make sure your companion has entered this exact code on their own device." }));
+    wrap.appendChild(el("hr", { class: "ripple-rule" }));
+    wrap.appendChild(el("h2", { text: "Who are you?" }));
+    wrap.appendChild(el("p", { text: "Choose the name you'll play as for this trip. Your companion should choose the other one on their device." }));
+
+    var choice = el("div", { class: "role-choice" });
+    ["robin", "parker"].forEach(function (r) {
+      choice.appendChild(el("button", { class: "role-btn", text: "I am " + label(r), onClick: function () {
+        state.role = r;
+        deck = deckForSeed(state.seed);
+        state.stage = "game";
+        persist(); render();
+      }}));
+    });
+    wrap.appendChild(choice);
+
+    wrap.appendChild(el("button", { class: "btn-ghost", text: "\u2190 back", onClick: function () {
+      state.stage = "setup"; render();
+    }}));
+
+    wrap.appendChild(renderRulesButton());
+    app.appendChild(wrap);
+  }
+
+  function renderGame() {
+    if (!deck.length) deck = deckForSeed(state.seed);
+    var wrap = el("div", { class: "stack" });
+
+    wrap.appendChild(el("div", { class: "brand" }, [
+      el("h1", { text: "Fisher RPG" }),
+      el("span", { class: "mark", text: state.seed })
+    ]));
+
+    var remaining = deck.length - state.pointer;
+    wrap.appendChild(el("div", { class: "status-row" }, [
+      el("span", { text: "you are " + label(state.role) }),
+      el("span", { text: remaining + " of " + deck.length + " lures left" })
+    ]));
+
+    if (myDrawCount() >= 3 && !state.dismissedCheckin) {
+      var banner = el("div", { class: "banner" });
+      banner.appendChild(document.createTextNode("You've each cast at least three times. Rule vii asks you to check in: \u201Chow many more fish do we want to catch?\u201D "));
+      var closeBtn = el("button", { class: "btn-ghost close", text: "got it", onClick: function () {
+        state.dismissedCheckin = true; persist(); render();
+      }});
+      banner.appendChild(closeBtn);
+      wrap.appendChild(banner);
+    }
+
+    if (remaining === 0) {
+      wrap.appendChild(el("div", { class: "banner" }, [
+        el("p", { text: "The tacklebox is empty. Give yourselves time to resolve any lingering information, then exit the boat." })
+      ]));
+    }
+
+    var actionsPanel = el("div", { class: "stack" });
+    actionsPanel.appendChild(el("button", {
+      class: "btn-primary",
+      text: "Reach into the tacklebox (you draw)",
+      disabled: remaining === 0 ? "true" : null,
+      onClick: drawSelf
+    }));
+    actionsPanel.appendChild(el("button", {
+      class: "btn-secondary",
+      text: label(otherRole(state.role)) + " draws \u2014 keep the deck in sync",
+      disabled: remaining === 0 ? "true" : null,
+      onClick: drawOther
+    }));
+    actionsPanel.appendChild(el("button", {
+      class: "btn-secondary",
+      text: "Undo last action",
+      disabled: state.actions.length === 0 ? "true" : null,
+      onClick: undo
+    }));
+    wrap.appendChild(actionsPanel);
+
+    wrap.appendChild(el("hr", { class: "ripple-rule" }));
+
+    wrap.appendChild(el("h2", { text: "Your catches" }));
+    if (!state.myCatches.length) {
+      wrap.appendChild(el("p", { class: "center-note", text: "Nothing pulled from the tacklebox yet. Cards you draw appear here \u2014 for your eyes only." }));
+    } else {
+      var slice = state.myCatches.slice().reverse();
+      slice.forEach(function (c) {
+        var item = el("div", { class: "catch-item" });
+        item.appendChild(el("span", { class: "num", text: "cast #" + (state.myCatches.indexOf(c) + 1) + " \u00B7 lure " + (c.deckIndex + 1) }));
+        item.appendChild(el("h3", { text: c.title }));
+        item.appendChild(paragraphs(c.description));
+        wrap.appendChild(item);
+      });
+    }
+
+    wrap.appendChild(el("hr", { class: "ripple-rule" }));
+    wrap.appendChild(el("h2", { text: "On the water" }));
+    if (!state.actions.length) {
+      wrap.appendChild(el("p", { class: "center-note", text: "No lines cast yet." }));
+    } else {
+      var log = el("div", { class: "log" });
+      state.actions.slice().reverse().forEach(function (a) {
+        var mine = a.kind === "self";
+        var text = mine ? "You drew a card (lure " + (a.deckIndex + 1) + ")" : label(a.drawer) + " drew a card (lure " + (a.deckIndex + 1) + ")";
+        log.appendChild(el("div", { class: "log-item" + (mine ? " mine" : ""), text: text }));
+      });
+      wrap.appendChild(log);
+    }
+
+    wrap.appendChild(renderRulesButton());
+    app.appendChild(wrap);
+  }
+
+  /* ---------- init ---------- */
+
+  async function init() {
+    await restore();
+    render();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
