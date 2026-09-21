@@ -4,6 +4,26 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
 <title>Fisher RPG</title>
+<!--
+  ATTRIBUTION & IP NOTICE
+  
+  This app is a companion interface for "Tacklebox," a tabletop roleplay game 
+  created by J. Walton, with additional writing by James Tadd Adcox, 
+  illustrations by Patrick Edell, and editing & layout by Tyler Crumrine.
+  
+  Tacklebox © 2025 J. Walton
+  Published by Possible Worlds Games LLC
+  Illustrations © Patrick Edell
+  
+  This app does NOT include the original game text or illustrations. 
+  It is a non-commercial, fan-made digital aid for players who own or have 
+  access to the physical or official Tacklebox game. The app merely provides 
+  synchronized deck shuffling and card draw tracking for two local players 
+  using the game's ruleset.
+  
+  If you enjoy Tacklebox, please purchase or support the official game 
+  and its creators at Possible Worlds Games.
+-->
 <style>
   :root {
     --lake-deep: #16262a;
@@ -337,6 +357,7 @@
     var node = document.createElement(tag);
     attrs = attrs || {};
     Object.keys(attrs).forEach(function (k) {
+      if (attrs[k] === null || attrs[k] === undefined) return;
       if (k === "text") node.textContent = attrs[k];
       else if (k === "html") node.innerHTML = attrs[k];
       else if (k === "onClick") node.addEventListener("click", attrs[k]);
