@@ -278,8 +278,9 @@
     stage: "setup", // setup | role | game
     seed: "",
     role: "",       // robin | parker
-    pointer: 0,
-    actions: [],    // { kind: 'self'|'sync', drawer, deckIndex, card? }
+    robinIdx: 0,    // robin draws from top (0 → deck.length)
+    parkerIdx: null,// parker draws from bottom (deck.length-1 → 0)
+    actions: [],    // { kind: 'self', drawer, deckIndex }
     myCatches: [],  // { deckIndex, title, description }
     dismissedCheckin: false
   };
@@ -306,7 +307,7 @@
   }
 
   async function clearSession() {
-    state = { stage: "setup", seed: "", role: "", pointer: 0, actions: [], myCatches: [], dismissedCheckin: false };
+    state = { stage: "setup", seed: "", role: "", robinIdx: 0, parkerIdx: null, actions: [], myCatches: [], dismissedCheckin: false };
     deck = [];
     try { await window.storage.delete(STORAGE_KEY, false); } catch (e) {}
   }
@@ -317,27 +318,29 @@
   function label(role) { return role === "robin" ? "Robin" : "Parker"; }
 
   function drawSelf() {
-    if (state.pointer >= deck.length) return;
-    var idx = state.pointer;
+    if (state.robinIdx >= state.parkerIdx) return; // deck exhausted
+    var idx;
+    if (state.role === "robin") {
+      idx = state.robinIdx;
+      state.robinIdx += 1;
+    } else {
+      idx = state.parkerIdx;
+      state.parkerIdx -= 1;
+    }
     var card = deck[idx];
     state.actions.push({ kind: "self", drawer: state.role, deckIndex: idx });
     state.myCatches.push({ deckIndex: idx, title: card.title, description: card.description });
-    state.pointer += 1;
-    persist(); render();
-  }
-
-  function drawOther() {
-    if (state.pointer >= deck.length) return;
-    var idx = state.pointer;
-    state.actions.push({ kind: "sync", drawer: otherRole(state.role), deckIndex: idx });
-    state.pointer += 1;
     persist(); render();
   }
 
   function undo() {
     if (!state.actions.length) return;
     var last = state.actions.pop();
-    state.pointer = last.deckIndex;
+    if (last.drawer === "robin") {
+      state.robinIdx -= 1;
+    } else {
+      state.parkerIdx += 1;
+    }
     if (last.kind === "self") state.myCatches.pop();
     if (myDrawCount() < 3) state.dismissedCheckin = false;
     persist(); render();
@@ -489,6 +492,7 @@
 
   function renderGame() {
     if (!deck.length) deck = deckForSeed(state.seed);
+    if (state.parkerIdx === null) state.parkerIdx = deck.length - 1;
     var wrap = el("div", { class: "stack" });
 
     wrap.appendChild(el("div", { class: "brand" }, [
@@ -496,7 +500,7 @@
       el("span", { class: "mark", text: state.seed })
     ]));
 
-    var remaining = deck.length - state.pointer;
+    var remaining = Math.max(0, state.parkerIdx - state.robinIdx + 1);
     wrap.appendChild(el("div", { class: "status-row" }, [
       el("span", { text: "you are " + label(state.role) }),
       el("span", { text: remaining + " of " + deck.length + " lures left" })
@@ -524,12 +528,6 @@
       text: "Reach into the tacklebox (you draw)",
       disabled: remaining === 0 ? "true" : null,
       onClick: drawSelf
-    }));
-    actionsPanel.appendChild(el("button", {
-      class: "btn-secondary",
-      text: label(otherRole(state.role)) + " draws \u2014 keep the deck in sync",
-      disabled: remaining === 0 ? "true" : null,
-      onClick: drawOther
     }));
     actionsPanel.appendChild(el("button", {
       class: "btn-secondary",
@@ -563,7 +561,8 @@
       var log = el("div", { class: "log" });
       state.actions.slice().reverse().forEach(function (a) {
         var mine = a.kind === "self";
-        var text = mine ? "You drew a card (lure " + (a.deckIndex + 1) + ")" : label(a.drawer) + " drew a card (lure " + (a.deckIndex + 1) + ")";
+        var end = a.drawer === "robin" ? "top" : "bottom";
+        var text = mine ? "You drew from the " + end + " (lure " + (a.deckIndex + 1) + ")" : label(a.drawer) + " drew from the " + end + " (lure " + (a.deckIndex + 1) + ")";
         log.appendChild(el("div", { class: "log-item" + (mine ? " mine" : ""), text: text }));
       });
       wrap.appendChild(log);
